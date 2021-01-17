@@ -1,73 +1,60 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
-</p>
+# 应用架构思想
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 模块
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+### 1.业务设计
 
-## Description
+* 地区
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+管理地区
 
-## Installation
+* 天气信息
+  * 实时天气记录
+  * 天气预测记录
 
-```bash
-$ npm install
-```
+### 2. 两个主模块:
 
-## Running the app
+* 公共模块`CommonModule`
 
-```bash
-# development
-$ npm run start
+导入TypeOrmModule 等等 全局依赖包
 
-# watch mode
-$ npm run start:dev
+* 业务模块`MainModule`
 
-# production mode
-$ npm run start:prod
-```
+管理业务模块入口及服务
 
-## Test
+## 程序设计
 
-```bash
-# unit tests
-$ npm run test
+### 1. 缓存设计
 
-# e2e tests
-$ npm run test:e2e
+请求过程中的两种缓存：
 
-# test coverage
-$ npm run test:cov
-```
+* 采用请求响应缓存，缓存5s,避免相同请求频繁进入程序。
+* 进入程序后，分以下几个步骤：
+  1. 检查缓存是否存在，如果键能检索到值，则返回；
+  2. 使用redlock根据`areaCode`加锁；
+  3. 重复1操作，检查缓存，不存在则执行下一步。
+  4. 去数据库检索数据，无论存在不存在都将数据加入缓存；
+  5. 释放redlock锁；
 
-## Support
+此处通过redlock来保证，一个areaCode同时只能有一次数据库操作。
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+在更新天气数据的时候，将实时天气数据同步缓存到redis中。
 
-## Stay in touch
+### 2. 同步数据
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+使用Cron 定时任务来触发同步远端数据。
 
-## License
+* 在Cron任务中，生成根据areaCode加载数据的子任务，并添加到`bull`队列任务中。
+* 由队列调度器去调度，按批次从队列中弹出去执行同步任务。
+* 加载数据后，经过数据适配，使用`cqrs`模式，将数据发送到命令中，并由命令的执行者去缓存并保存数据。
 
-Nest is [MIT licensed](LICENSE).
+### 3. 文档
+
+使用 集成的 swagger 生成了对应的文档，并进行了简单的描述
+
+地址: http://localhost:3000/api
+
+### 4. 数据库
+
+数据库脚本放置于`sql`文件夹下
+
