@@ -11,7 +11,7 @@
  Target Server Version : 80021
  File Encoding         : 65001
 
- Date: 17/01/2021 18:13:43
+ Date: 17/01/2021 18:30:10
 */
 
 SET NAMES utf8mb4;
@@ -102,7 +102,8 @@ CREATE TABLE `t_dict_value`  (
   `descirbe` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
   `dict_code` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `sort_no` int NULL DEFAULT NULL,
-  PRIMARY KEY (`dv_code`) USING BTREE
+  PRIMARY KEY (`dv_code`) USING BTREE,
+  INDEX `dict_code_idx`(`dict_code`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '字典值' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -135,7 +136,8 @@ CREATE TABLE `t_weather_error_feedback`  (
   `create_by` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
   `area_code` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `actual_weather_type` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `area_code_idx`(`area_code`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户天气纠错反馈' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -160,7 +162,9 @@ CREATE TABLE `t_weather_forecast`  (
   `rain_percent` int NULL DEFAULT NULL COMMENT '降水概率',
   `forecast_date` date NOT NULL COMMENT '预测日期',
   `create_time` datetime(0) NOT NULL,
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `area_code_idx`(`area_code`) USING BTREE,
+  INDEX `forecast_date_idx`(`forecast_date`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '天气预测记录表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -210,7 +214,8 @@ CREATE TABLE `t_weather_record`  (
   `air_humidity` int NULL DEFAULT NULL COMMENT '空气温度',
   `rain_percent` int NULL DEFAULT NULL COMMENT '降水概率',
   `create_time` datetime(0) NOT NULL,
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `area_code_idx`(`area_code`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '天气实时记录表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
